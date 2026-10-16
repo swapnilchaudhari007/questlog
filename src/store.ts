@@ -31,6 +31,14 @@ export function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
+// Keep the original completion time when a finished game is re-saved as done (e.g. after rating it);
+// clear it only when the game actually moves back out of "done".
+export function doneAtAfter(g: Game, patch: Partial<Game>): number | undefined {
+  if (patch.status === undefined) return g.doneAt;
+  if (patch.status !== 'done') return undefined;
+  return g.status === 'done' && g.doneAt ? g.doneAt : Date.now();
+}
+
 export function useGames() {
   const [games, setGames] = useState<Game[] | null>(null);
 
@@ -56,7 +64,7 @@ export function useGames() {
   const update = useCallback((id: string, patch: Partial<Game>) => {
     setGames((gs) =>
       (gs ?? []).map((g) =>
-        g.id === id ? { ...g, ...patch, doneAt: patch.status === 'done' ? Date.now() : patch.status ? undefined : g.doneAt } : g,
+        g.id === id ? { ...g, ...patch, doneAt: doneAtAfter(g, patch) } : g,
       ),
     );
   }, []);
